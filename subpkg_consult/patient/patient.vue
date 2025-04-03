@@ -1,5 +1,10 @@
 <script setup>
-  import { ref } from 'vue'
+  import { computed, ref } from 'vue'
+  import { useConsultStore } from '@/store/consult'
+  import { onShow } from '@dcloudio/uni-app'
+  import { getPatientListApi } from '@/api/patient'
+
+  const consultStore = useConsultStore()
 
   // 侧滑按钮配置
   const swipeOptions = ref([
@@ -10,9 +15,46 @@
       }
     }
   ])
+
+  // 患者列表
+  const patientList = ref([])
+  // 索引
+  const patientIndex = ref(0)
+
+  const isShowPage = ref(false)
+
+  // 获取患者列表
+  async function getPatientList() {
+    const res = await getPatientListApi()
+    patientList.value = res
+    isShowPage.value = true
+  }
+
+  onShow(() => {
+    getPatientList()
+  })
+
+  // 选择患者
+  function selectPatient(index) {
+    patientIndex.value = index
+  }
+
+  // 当前患者的id
+  const patientId = computed(() => {
+    return patientList.value[patientIndex.value]?.id
+  })
+
+  function nextStep() {
+    // 把患者id存储到pinia中
+    consultStore.patientId = patientId.value
+
+    uni.navigateTo({
+      url: '/subpkg_consult/payment/payment'
+    })
+  }
 </script>
 <template>
-  <scroll-page>
+  <scroll-page v-if="isShowPage">
     <view class="patient-page">
       <view class="page-header">
         <view class="patient-title"> 请选择患者信息 </view>
@@ -21,21 +63,31 @@
         </view>
       </view>
       <uni-swipe-action>
-        <uni-swipe-action-item :right-options="swipeOptions">
-          <view class="archive-card active">
+        <uni-swipe-action-item
+          :right-options="swipeOptions"
+          v-for="(item, index) in patientList"
+          :key="item.id"
+        >
+          <view
+            class="archive-card"
+            :class="{ active: patientIndex === index }"
+            @click="selectPatient(index)"
+          >
             <view class="archive-info">
-              <text class="name">李富贵</text>
-              <text class="id-card">321***********6164</text>
-              <text class="default">默认</text>
+              <text class="name">{{ item.name }}</text>
+              <text class="id-card">{{
+                item.idCard.replace(/^(.{6}).+(.{4})$/, '$1********$2')
+              }}</text>
+              <text v-if="item.defaultFlag === 1" class="default">默认</text>
             </view>
             <view class="archive-info">
-              <text class="gender">男</text>
-              <text class="age">32岁</text>
+              <text class="gender">{{ item.genderValue }}</text>
+              <text class="age">{{ item.age }}岁</text>
             </view>
             <navigator
               hover-class="none"
               class="edit-link"
-              url="/subpkg_archive/form/index"
+              :url="`/subpkg_archive/form/index?id=${item.id}`"
             >
               <uni-icons
                 type="icon-edit"
@@ -62,7 +114,7 @@
     </view>
     <!-- 下一步操作 -->
     <view class="next-step">
-      <button class="uni-button">下一步</button>
+      <button class="uni-button" @click="nextStep">下一步</button>
     </view>
   </scroll-page>
 </template>

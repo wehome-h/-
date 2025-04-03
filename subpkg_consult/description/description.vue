@@ -1,26 +1,77 @@
 <script setup>
-  import { ref } from 'vue'
+  import { computed, ref } from 'vue'
+  import { storeToRefs } from 'pinia'
+  import { useConsultStore } from '@/store/consult'
+
+  const { initalValue, illnessInfo } = storeToRefs(useConsultStore())
+
+  const props = defineProps({
+    type: String,
+    illnessType: String,
+    depId: String
+  })
 
   // 病情描述数据
-  const illnessInfo = ref({
-    illnessDesc: '',
-    illnessTime: null,
-    consultFlag: null
-  })
+  // const illnessInfo = ref({
+  //   illnessDesc: '',
+  //   illnessTime: null,
+  //   consultFlag: null,
+  //   pictures: []
+  // })
+
+  if (illnessInfo.value.illnessDesc) {
+    uni.showModal({
+      title: '温馨提示',
+      content: '是否恢复之前填写的病情信息？',
+      confirmText: '确认',
+      confirmColor: '#16c2a3',
+      cancelColor: '#848484',
+      success: ({ confirm }) => {
+        // 清空 pinia 中记录的数据
+        if (!confirm) illnessInfo.value = { ...initalValue.value }
+      }
+    })
+  }
 
   // 患病时长
   const illnessTimes = [
-    { value: 1, text: '一周内' },
-    { value: 2, text: '一月内' },
-    { value: 3, text: '半年内' },
-    { value: 4, text: '半年以上' }
+    {
+      value: 1,
+      text: '一周内'
+    },
+    {
+      value: 2,
+      text: '一月内'
+    },
+    {
+      value: 3,
+      text: '半年内'
+    },
+    {
+      value: 4,
+      text: '半年以上'
+    }
   ]
 
   // 是否就诊过
   const consultFlags = [
-    { value: 1, text: '就诊过' },
-    { value: 0, text: '没有就诊过' }
+    {
+      value: 1,
+      text: '就诊过'
+    },
+    {
+      value: 0,
+      text: '没有就诊过'
+    }
   ]
+
+  const isNextStep = computed(() => {
+    return (
+      illnessInfo.value.illnessDesc !== '' &&
+      illnessInfo.value.illnessTime !== null &&
+      illnessInfo.value.consultFlag !== null
+    )
+  })
 
   // 选择患病时长
   function selectIllnessTime(value) {
@@ -31,6 +82,19 @@
   // 是否就诊过
   function selectConsultFlag(value) {
     illnessInfo.value.consultFlag = value
+  }
+
+  // 下一步
+  function nextStep() {
+    // 将地址中的参数存入 pinia
+    const consultStore = useConsultStore()
+    consultStore.type = props.type
+    consultStore.illnessType = props.illnessType
+    consultStore.depId = props.depId
+
+    uni.navigateTo({
+      url: '/subpkg_consult/patient/patient'
+    })
   }
 </script>
 
@@ -94,6 +158,7 @@
       <!-- 上传图片 -->
       <view class="patient-picture">
         <uni-file-picker
+          v-model="illnessInfo.pictures"
           title="上传病情相关图片 (仅医生可见)"
           limit="8"
           :image-styles="{ width: '160rpx', height: '160rpx' }"
@@ -103,7 +168,9 @@
     </view>
     <!-- 下一步操作 -->
     <view class="next-step">
-      <button class="uni-button">下一步</button>
+      <button class="uni-button" :disabled="!isNextStep" @click="nextStep">
+        下一步
+      </button>
     </view>
   </scroll-page>
 </template>

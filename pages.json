@@ -112,9 +112,21 @@
         }
       },
       {
+        "path": "payment/payment",
+        "style": {
+          "navigationBarTitleText": "等待付款"
+        }
+      },
+      {
         "path": "quickly/quickly",
         "style": {
           "navigationBarTitleText": "急速问诊"
+        }
+      },
+      {
+        "path": "room/room",
+        "style": {
+          "navigationBarTitleText": "问诊室"
         }
       }
     ]
